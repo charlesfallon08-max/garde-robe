@@ -1,0 +1,268 @@
+{
+  "metadata": {
+    "owner": "garde-robe personnelle",
+    "style": "Coastal starboy / Old money décontracté",
+    "season": "Printemps-Été 2026",
+    "budget_range": "Abordable à milieu de gamme",
+    "stores_priority": ["Zara", "H&M", "Uniqlo", "Abercrombie", "Adidas"],
+    "style_notes": [
+      "Masculin, oversized/relaxed fits uniquement",
+      "Esthétique côte méditerranéenne / European summer",
+      "Max 2 zip-ups dans la garde-robe",
+      "Focus été : shorts et jeans baggy, pas de pantalons longs sauf jeans",
+      "Palette dominante : blanc, écru, navy, beige, sand, kaki, quelques accents terracotta/sage",
+      "Graphic tees signature à thématique côtière (Monte-Carlo, Amalfi, yacht, surf)",
+      "Chaussures : sneakers blanches canvas, Sambas, Birkenstocks, espadrilles"
+    ]
+  },
+  "items": [
+    {
+      "id": "s1",
+      "brand": "Abercrombie",
+      "name": "Premium Heavyweight 2.0 Tee",
+      "category": "hauts",
+      "subtype": "tee",
+      "price_cad": 40,
+      "color_hex": "#2C3E50",
+      "color_name": "Navy",
+      "url": "https://www.abercrombie.com/shop/us/mens-tops-premium-heavyweight-20-t-shirts",
+      "note": "Dispo en blanc, noir, gris, navy - acheter plusieurs couleurs"
+    },
+    {
+      "id": "s2",
+      "brand": "Abercrombie",
+      "name": "Vintage-Inspired Tee",
+      "category": "hauts",
+      "subtype": "tee",
+      "price_cad": 29,
+      "color_hex": "#F5F1E8",
+      "color_name": "Cream",
+      "url": "https://www.abercrombie.com/shop/us/p/vintage-inspired-tee-52296824",
+      "note": "Fit oversized vintage, très doux"
+    },
+    {
+      "id": "s3",
+      "brand": "Zara",
+      "name": "T-shirt basique coton",
+      "category": "hauts",
+      "subtype": "tee",
+      "price_cad": 20,
+      "color_hex": "#FFFFFF",
+      "color_name": "Blanc",
+      "url": "https://www.zara.com/ca/en/man-tshirts-plain-l865.html",
+      "note": "Plusieurs coupes dispo"
+    },
+    {
+      "id": "s4",
+      "brand": "Uniqlo",
+      "name": "Heavyweight Crew Neck T-Shirt",
+      "category": "hauts",
+      "subtype": "tee",
+      "price_cad": 25,
+      "color_hex": "#1A1A1A",
+      "color_name": "Noir",
+      "url": "https://www.uniqlo.com/ca/en/men/tops/t-shirts",
+      "note": "Meilleur rapport qualité/prix"
+    },
+    {
+      "id": "s5",
+      "brand": "Zara",
+      "name": "T-shirt imprimé côtier",
+      "category": "hauts",
+      "subtype": "graphic",
+      "price_cad": 30,
+      "color_hex": "#F5F1E8",
+      "color_name": "Cream",
+      "url": "https://www.zara.com/ca/en/man-tshirts-printed-l867.html",
+      "note": "Collection de graphic tees Zara — chercher motifs méditerranéens/côtiers"
+    },
+    {
+      "id": "s6",
+      "brand": "Abercrombie",
+      "name": "Destination Graphic Tee",
+      "category": "hauts",
+      "subtype": "graphic",
+      "price_cad": 35,
+      "color_hex": "#FFFFFF",
+      "color_name": "Blanc",
+      "url": "https://www.abercrombie.com/shop/us/mens-tops-destination-graphics",
+      "note": "Graphic tees style voyage / Monte-Carlo / Positano"
+    },
+    {
+      "id": "s7",
+      "brand": "Zara",
+      "name": "Chemise 100% lin",
+      "category": "hauts",
+      "subtype": "shirt",
+      "price_cad": 50,
+      "color_hex": "#1B3A5B",
+      "color_name": "Navy",
+      "url": "https://www.zara.com/ca/en/man-shirts-linen-l754.html",
+      "note": "À porter ouverte sur un tee ou torse nu"
+    },
+    {
+      "id": "s8",
+      "brand": "Abercrombie",
+      "name": "Essential Full-Zip Hoodie",
+      "category": "hauts",
+      "subtype": "hoodie",
+      "price_cad": 70,
+      "color_hex": "#8B8680",
+      "color_name": "Gris",
+      "url": "https://www.abercrombie.com/shop/us/mens-tops-zip-up-hoodies",
+      "note": "Classique gris chiné"
+    },
+    {
+      "id": "s9",
+      "brand": "Zara",
+      "name": "Short coton/lin rayé",
+      "category": "bas",
+      "subtype": "short",
+      "price_cad": 40,
+      "color_hex": "#7A8B6F",
+      "color_name": "Écru/vert",
+      "url": "https://www.zara.com/ca/en/striped-cotton-linen-shorts-p06917509.html",
+      "note": "Taille élastique, coupe mi-longue"
+    },
+    {
+      "id": "s10",
+      "brand": "Zara",
+      "name": "Bermuda en lin",
+      "category": "bas",
+      "subtype": "short",
+      "price_cad": 50,
+      "color_hex": "#E8DCC0",
+      "color_name": "Beige",
+      "url": "https://www.zara.com/ca/en/man-bermudas-linen-l601.html",
+      "note": "Plusieurs couleurs disponibles"
+    },
+    {
+      "id": "s11",
+      "brand": "H&M",
+      "name": "Short en lin relaxed",
+      "category": "bas",
+      "subtype": "short",
+      "price_cad": 25,
+      "color_hex": "#1B3A5B",
+      "color_name": "Navy",
+      "url": "https://www2.hm.com/en_ca/men/shop-by-product/shorts.html",
+      "note": "Alternative budget"
+    },
+    {
+      "id": "s12",
+      "brand": "Abercrombie",
+      "name": "Mid-Length Pull-On Short",
+      "category": "bas",
+      "subtype": "short",
+      "price_cad": 45,
+      "color_hex": "#F5F1E8",
+      "color_name": "Blanc",
+      "url": "https://www.abercrombie.com/shop/us/mens-bottoms-shorts",
+      "note": "Coupe 7 pouces"
+    },
+    {
+      "id": "s13",
+      "brand": "H&M",
+      "name": "Loose Fit Jeans",
+      "category": "bas",
+      "subtype": "jeans",
+      "price_cad": 45,
+      "color_hex": "#9BB0C8",
+      "color_name": "Bleu clair",
+      "url": "https://www2.hm.com/en_ca/men/shop-by-product/jeans/loose.html",
+      "note": "Baggy/relaxed, lavage clair — pièce signature du look"
+    },
+    {
+      "id": "s14",
+      "brand": "Abercrombie",
+      "name": "Baggy Jean",
+      "category": "bas",
+      "subtype": "jeans",
+      "price_cad": 90,
+      "color_hex": "#6B89A8",
+      "color_name": "Medium wash",
+      "url": "https://www.abercrombie.com/shop/us/mens-bottoms-jeans",
+      "note": "Alternative plus qualitative"
+    },
+    {
+      "id": "s15",
+      "brand": "Adidas",
+      "name": "Samba OG White",
+      "category": "chaussures",
+      "subtype": "sneaker",
+      "price_cad": 130,
+      "color_hex": "#FFFFFF",
+      "color_name": "Blanc/noir",
+      "url": "https://www.adidas.ca/en/samba-og-shoes/B75806.html",
+      "note": "Au-dessus du budget mais classique du moment"
+    },
+    {
+      "id": "s16",
+      "brand": "Converse",
+      "name": "Chuck Taylor All Star Low",
+      "category": "chaussures",
+      "subtype": "sneaker",
+      "price_cad": 80,
+      "color_hex": "#F5F1E8",
+      "color_name": "Blanc",
+      "url": "https://www.converse.ca/shop/p/chuck-taylor-all-star-classic-unisex-shoe/",
+      "note": "Option canvas blanche abordable"
+    },
+    {
+      "id": "s17",
+      "brand": "Birkenstock",
+      "name": "Arizona Taupe",
+      "category": "chaussures",
+      "subtype": "sandal",
+      "price_cad": 140,
+      "color_hex": "#8B7355",
+      "color_name": "Taupe",
+      "url": "https://www.birkenstock.com/ca/arizona/arizona-core-suedeleather-0-eva-u.html",
+      "note": "Investissement durable, omniprésent dans l'inspi"
+    },
+    {
+      "id": "s18",
+      "brand": "Zara",
+      "name": "Lunettes de soleil rondes",
+      "category": "accessoires",
+      "subtype": "sunglasses",
+      "price_cad": 30,
+      "color_hex": "#1A1A1A",
+      "color_name": "Écaille",
+      "url": "https://www.zara.com/ca/en/man-accessories-sunglasses-l1621.html",
+      "note": "Style vintage rond ou carré"
+    },
+    {
+      "id": "s19",
+      "brand": "H&M",
+      "name": "Casquette coton",
+      "category": "accessoires",
+      "subtype": "cap",
+      "price_cad": 15,
+      "color_hex": "#1B3A5B",
+      "color_name": "Navy",
+      "url": "https://www2.hm.com/en_ca/men/shop-by-product/accessories/hats-and-caps.html",
+      "note": "Basique navy ou écru"
+    }
+  ],
+  "styling_rules": {
+    "color_matching": {
+      "neutrals_base": ["#FFFFFF", "#F5F1E8", "#E8DCC0", "#1A1A1A", "#8B8680"],
+      "accent_navy": ["#1B3A5B", "#2C3E50", "#0F2238"],
+      "accent_warm": ["#C4A878", "#B85C3E", "#8B7355"],
+      "accent_cool": ["#7A8B6F", "#9BB0C8"],
+      "rule": "Mélanger max 1 neutre + 1 accent, éviter navy+noir ensemble"
+    },
+    "outfit_composition": {
+      "required_categories": ["haut", "bas", "chaussures"],
+      "optional_categories": ["accessoires"],
+      "max_graphic_per_outfit": 1,
+      "forbidden_combos": [
+        "graphic tee + chemise à motifs",
+        "2 graphics",
+        "hoodie + chemise"
+      ]
+    },
+    "occasion_tags": ["jour", "soir", "beach", "terrasse", "école", "sortie"]
+  }
+}

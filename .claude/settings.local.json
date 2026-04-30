@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"$HOME/.local/nodejs/bin:$PATH\")",
+      "Bash(npm --version)",
+      "Bash(npx --version)"
+    ]
+  }
+}

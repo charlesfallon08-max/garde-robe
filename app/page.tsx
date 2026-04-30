@@ -1,103 +1,142 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import type { Piece } from "@/db/schema";
+import PieceCard from "./components/PieceCard";
+import AddPieceModal from "./components/AddPieceModal";
+
+const CATEGORIES = [
+  { key: "all",         label: "Tout" },
+  { key: "hauts",       label: "Hauts" },
+  { key: "bas",         label: "Bas" },
+  { key: "chaussures",  label: "Chaussures" },
+  { key: "accessoires", label: "Accessoires" },
+];
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [pieces, setPieces]       = useState<Piece[]>([]);
+  const [filter, setFilter]       = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [seeded, setSeeded]       = useState(false);
+  const [loading, setLoading]     = useState(true);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const fetchPieces = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch("/api/pieces");
+    const data = await res.json();
+    setPieces(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      if (!seeded) {
+        await fetch("/api/pieces/seed", { method: "POST" });
+        setSeeded(true);
+      }
+      await fetchPieces();
+    };
+    init();
+  }, [seeded, fetchPieces]);
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/pieces/${id}`, { method: "DELETE" });
+    setPieces((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const visible = filter === "all" ? pieces : pieces.filter((p) => p.categorie === filter);
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: "var(--cream)" }}>
+      {/* En-tête */}
+      <header className="border-b border-sand/30 px-6 py-8">
+        <p className="text-xs uppercase tracking-[0.3em] text-sand mb-2">Collection personnelle</p>
+        <h1
+          className="text-5xl text-navy leading-none"
+          style={{ fontFamily: "var(--font-cormorant)", fontWeight: 300 }}
+        >
+          Garde-Robe
+        </h1>
+        <p
+          className="text-xl text-ink/50 mt-1"
+          style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}
+        >
+          Printemps — Été 2026
+        </p>
+      </header>
+
+      {/* Navigation onglets */}
+      <nav className="border-b border-sand/30 px-6 flex gap-8">
+        <button className="py-4 text-sm uppercase tracking-widest text-navy border-b-2 border-navy -mb-px">
+          Ma Garde-Robe
+        </button>
+        <button className="py-4 text-sm uppercase tracking-widest text-ink/30 cursor-not-allowed" disabled>
+          Outfits
+        </button>
+        <button className="py-4 text-sm uppercase tracking-widest text-ink/30 cursor-not-allowed" disabled>
+          Avatar
+        </button>
+      </nav>
+
+      {/* Filtres + Bouton ajouter */}
+      <div className="px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          {CATEGORIES.map(({ key, label }) => {
+            const count = key === "all"
+              ? pieces.length
+              : pieces.filter((p) => p.categorie === key).length;
+            return (
+              <button
+                key={key}
+                onClick={() => setFilter(key)}
+                className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full border transition-colors ${
+                  filter === key
+                    ? "bg-navy text-cream border-navy"
+                    : "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
+                }`}
+              >
+                {label}
+                <span className={`ml-1.5 ${filter === key ? "text-sand" : "text-ink/30"}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
+
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-5 py-2 bg-navy text-cream text-xs uppercase tracking-widest rounded-sm hover:bg-ink transition-colors"
+        >
+          <span className="text-lg leading-none">+</span> Ajouter une pièce
+        </button>
+      </div>
+
+      {/* Grille */}
+      <main className="px-6 pb-12">
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <p className="text-ink/40 text-sm tracking-widest uppercase">Chargement…</p>
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="flex items-center justify-center py-24">
+            <p className="text-ink/40 text-sm">Aucune pièce dans cette catégorie.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {visible.map((piece) => (
+              <PieceCard key={piece.id} piece={piece} onDelete={handleDelete} />
+            ))}
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      {showModal && (
+        <AddPieceModal
+          onAdd={() => { setShowModal(false); fetchPieces(); }}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Autorise les WASM nécessaires pour le détourage d'images
+  experimental: {
+    serverComponentsHmrCache: false,
+  },
 };
 
 export default nextConfig;

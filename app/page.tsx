@@ -1,32 +1,52 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { Piece } from "@/db/schema";
+import type { Piece, Outfit } from "@/db/schema";
 import PieceCard from "./components/PieceCard";
 import AddPieceModal from "./components/AddPieceModal";
+import OutfitCard from "./components/OutfitCard";
+import OutfitGenerator from "./components/OutfitGenerator";
+import StatsWidget from "./components/StatsWidget";
 
-const CATEGORIES = [
-  { key: "all",         label: "Tout" },
-  { key: "hauts",       label: "Hauts" },
-  { key: "bas",         label: "Bas" },
-  { key: "chaussures",  label: "Chaussures" },
+type Tab = "garderobe" | "outfits";
+
+const PIECE_CATEGORIES = [
+  { key: "all", label: "Tout" },
+  { key: "hauts", label: "Hauts" },
+  { key: "bas", label: "Bas" },
+  { key: "chaussures", label: "Chaussures" },
   { key: "accessoires", label: "Accessoires" },
 ];
 
+const OUTFIT_OCCASIONS = [
+  { key: "all", label: "Tous" },
+  { key: "jour", label: "☀️ Jour" },
+  { key: "soir", label: "🌙 Soir" },
+  { key: "beach", label: "🏖 Beach" },
+  { key: "terrasse", label: "☕ Terrasse" },
+  { key: "école", label: "🎒 École" },
+];
+
 export default function Home() {
+  const [tab, setTab]             = useState<Tab>("garderobe");
   const [pieces, setPieces]       = useState<Piece[]>([]);
-  const [filter, setFilter]       = useState("all");
+  const [outfits, setOutfits]     = useState<Outfit[]>([]);
+  const [pieceFilter, setPieceFilter] = useState("all");
+  const [outfitFilter, setOutfitFilter] = useState("all");
   const [search, setSearch]       = useState("");
   const [showModal, setShowModal] = useState(false);
   const [seeded, setSeeded]       = useState(false);
   const [loading, setLoading]     = useState(true);
+  const [showGenerator, setShowGenerator] = useState(false);
 
   const fetchPieces = useCallback(async () => {
-    setLoading(true);
     const res = await fetch("/api/pieces");
-    const data = await res.json();
-    setPieces(data);
-    setLoading(false);
+    setPieces(await res.json());
+  }, []);
+
+  const fetchOutfits = useCallback(async () => {
+    const res = await fetch("/api/outfits");
+    setOutfits(await res.json());
   }, []);
 
   useEffect(() => {
@@ -35,154 +55,197 @@ export default function Home() {
         await fetch("/api/pieces/seed", { method: "POST" });
         setSeeded(true);
       }
-      await fetchPieces();
+      await Promise.all([fetchPieces(), fetchOutfits()]);
+      setLoading(false);
     };
     init();
-  }, [seeded, fetchPieces]);
+  }, [seeded, fetchPieces, fetchOutfits]);
 
-  const handleDelete = async (id: string) => {
+  const handleDeletePiece = async (id: string) => {
     await fetch(`/api/pieces/${id}`, { method: "DELETE" });
     setPieces((prev) => prev.filter((p) => p.id !== id));
   };
 
-  // Filtre par catégorie puis par recherche (nom, marque, couleur)
-  const visible = pieces
-    .filter((p) => filter === "all" || p.categorie === filter)
+  const handleDeleteOutfit = async (id: string) => {
+    await fetch(`/api/outfits/${id}`, { method: "DELETE" });
+    setOutfits((prev) => prev.filter((o) => o.id !== id));
+  };
+
+  const visiblePieces = pieces
+    .filter((p) => pieceFilter === "all" || p.categorie === pieceFilter)
     .filter((p) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
-      return (
-        p.nom.toLowerCase().includes(q) ||
-        p.marque.toLowerCase().includes(q) ||
-        p.couleur_nom.toLowerCase().includes(q) ||
-        p.sous_type.toLowerCase().includes(q)
-      );
+      return p.nom.toLowerCase().includes(q) || p.marque.toLowerCase().includes(q) || p.couleur_nom.toLowerCase().includes(q);
     });
 
+  const visibleOutfits = outfits.filter(
+    (o) => outfitFilter === "all" || o.occasion === outfitFilter
+  );
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "var(--cream)" }}>
+    <div className="min-h-screen pb-12" style={{ backgroundColor: "var(--cream)" }}>
       {/* En-tête */}
       <header className="border-b border-sand/30 px-6 py-8">
         <p className="text-xs uppercase tracking-[0.3em] text-sand mb-2">Collection personnelle</p>
-        <h1
-          className="text-5xl text-navy leading-none"
-          style={{ fontFamily: "var(--font-cormorant)", fontWeight: 300 }}
-        >
+        <h1 className="text-5xl text-navy leading-none"
+          style={{ fontFamily: "var(--font-cormorant)", fontWeight: 300 }}>
           Garde-Robe
         </h1>
-        <p
-          className="text-xl text-ink/50 mt-1"
-          style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}
-        >
+        <p className="text-xl text-ink/50 mt-1"
+          style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}>
           Printemps — Été 2026
         </p>
       </header>
 
       {/* Navigation onglets */}
       <nav className="border-b border-sand/30 px-6 flex gap-8">
-        <button className="py-4 text-sm uppercase tracking-widest text-navy border-b-2 border-navy -mb-px">
+        <button onClick={() => setTab("garderobe")}
+          className={`py-4 text-sm uppercase tracking-widest border-b-2 -mb-px transition-colors ${
+            tab === "garderobe" ? "text-navy border-navy" : "text-ink/40 border-transparent hover:text-ink/70"
+          }`}>
           Ma Garde-Robe
+          <span className="ml-2 text-xs text-ink/30">{pieces.length}</span>
         </button>
-        <button className="py-4 text-sm uppercase tracking-widest text-ink/30 cursor-not-allowed" disabled>
+        <button onClick={() => setTab("outfits")}
+          className={`py-4 text-sm uppercase tracking-widest border-b-2 -mb-px transition-colors ${
+            tab === "outfits" ? "text-navy border-navy" : "text-ink/40 border-transparent hover:text-ink/70"
+          }`}>
           Outfits
+          {outfits.length > 0 && <span className="ml-2 text-xs text-ink/30">{outfits.length}</span>}
         </button>
-        <button className="py-4 text-sm uppercase tracking-widest text-ink/30 cursor-not-allowed" disabled>
+        <button className="py-4 text-sm uppercase tracking-widest text-ink/25 cursor-not-allowed" disabled>
           Avatar
         </button>
       </nav>
 
-      {/* Filtres + Recherche + Bouton ajouter */}
-      <div className="px-6 py-5 flex flex-col gap-4">
-        {/* Ligne 1 : filtres catégorie */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex gap-2 flex-wrap">
-            {CATEGORIES.map(({ key, label }) => {
-              const count = key === "all"
-                ? pieces.length
-                : pieces.filter((p) => p.categorie === key).length;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setFilter(key)}
-                  className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full border transition-colors ${
-                    filter === key
-                      ? "bg-navy text-cream border-navy"
-                      : "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
-                  }`}
-                >
-                  {label}
-                  <span className={`ml-1.5 ${filter === key ? "text-sand" : "text-ink/30"}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+      {/* ── ONGLET MA GARDE-ROBE ── */}
+      {tab === "garderobe" && (
+        <>
+          <div className="px-6 py-5 flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
+                {PIECE_CATEGORIES.map(({ key, label }) => {
+                  const count = key === "all" ? pieces.length : pieces.filter((p) => p.categorie === key).length;
+                  return (
+                    <button key={key} onClick={() => setPieceFilter(key)}
+                      className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full border transition-colors ${
+                        pieceFilter === key ? "bg-navy text-cream border-navy" : "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
+                      }`}>
+                      {label} <span className={`ml-1 ${pieceFilter === key ? "text-sand" : "text-ink/30"}`}>{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => setShowModal(true)}
+                className="flex items-center gap-2 px-5 py-2 bg-navy text-cream text-xs uppercase tracking-widest rounded-sm hover:bg-ink transition-colors">
+                <span className="text-lg leading-none">+</span> Ajouter une pièce
+              </button>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm">⌕</span>
+              <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher par nom, marque, couleur…"
+                className="w-full pl-8 pr-4 py-2 border border-sand/30 rounded-sm bg-white/60 text-sm placeholder:text-ink/30 focus:outline-none focus:border-navy" />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/30 hover:text-ink">✕</button>
+              )}
+            </div>
           </div>
 
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-2 bg-navy text-cream text-xs uppercase tracking-widest rounded-sm hover:bg-ink transition-colors"
-          >
-            <span className="text-lg leading-none">+</span> Ajouter une pièce
-          </button>
-        </div>
+          <main className="px-6 pb-6">
+            {loading ? (
+              <div className="flex items-center justify-center py-24">
+                <p className="text-ink/40 text-sm tracking-widest uppercase">Chargement…</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {visiblePieces.map((piece) => (
+                  <PieceCard key={piece.id} piece={piece} onDelete={handleDeletePiece} onEdit={fetchPieces} />
+                ))}
+              </div>
+            )}
+          </main>
+        </>
+      )}
 
-        {/* Ligne 2 : barre de recherche */}
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm">⌕</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher par nom, marque, couleur…"
-            className="w-full pl-8 pr-4 py-2 border border-sand/30 rounded-sm bg-white/60 text-sm text-ink placeholder:text-ink/30 focus:outline-none focus:border-navy"
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/30 hover:text-ink"
-            >
-              ✕
+      {/* ── ONGLET OUTFITS ── */}
+      {tab === "outfits" && (
+        <div className="px-6 py-6 space-y-8">
+          {/* Bouton générateur */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl text-navy" style={{ fontFamily: "var(--font-cormorant)", fontWeight: 300 }}>
+                Mes Outfits
+              </h2>
+              <p className="text-sm text-ink/40 mt-0.5" style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}>
+                Créés avec Claude IA
+              </p>
+            </div>
+            <button onClick={() => setShowGenerator(!showGenerator)}
+              className={`px-5 py-2 text-xs uppercase tracking-widest rounded-sm border transition-colors ${
+                showGenerator ? "bg-navy text-cream border-navy" : "bg-navy text-cream border-navy hover:bg-ink"
+              }`}>
+              {showGenerator ? "✕ Fermer" : "✦ Générer un outfit"}
             </button>
+          </div>
+
+          {/* Générateur (dépliable) */}
+          {showGenerator && (
+            <OutfitGenerator
+              allPieces={pieces}
+              onSaved={() => { fetchOutfits(); }}
+            />
+          )}
+
+          {/* Filtres occasions */}
+          {outfits.length > 0 && (
+            <div className="flex gap-2 flex-wrap">
+              {OUTFIT_OCCASIONS.map(({ key, label }) => {
+                const count = key === "all" ? outfits.length : outfits.filter((o) => o.occasion === key).length;
+                if (key !== "all" && count === 0) return null;
+                return (
+                  <button key={key} onClick={() => setOutfitFilter(key)}
+                    className={`px-4 py-1.5 text-xs rounded-full border transition-colors ${
+                      outfitFilter === key ? "bg-navy text-cream border-navy" : "border-sand/40 text-ink/60 hover:border-navy"
+                    }`}>
+                    {label} <span className="ml-1 opacity-50">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Grille des outfits sauvegardés */}
+          {visibleOutfits.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <p className="text-4xl opacity-20">✦</p>
+              <p className="text-ink/40 text-sm">Aucun outfit sauvegardé pour l&apos;instant.</p>
+              <button onClick={() => setShowGenerator(true)}
+                className="text-xs text-navy underline">
+                Générer mon premier outfit →
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+              {visibleOutfits.map((outfit) => (
+                <OutfitCard key={outfit.id} outfit={outfit} allPieces={pieces} onDelete={handleDeleteOutfit} />
+              ))}
+            </div>
           )}
         </div>
-      </div>
+      )}
 
-      {/* Grille */}
-      <main className="px-6 pb-12">
-        {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <p className="text-ink/40 text-sm tracking-widest uppercase">Chargement…</p>
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="flex items-center justify-center py-24 flex-col gap-2">
-            <p className="text-ink/40 text-sm">Aucune pièce trouvée.</p>
-            {search && (
-              <button onClick={() => setSearch("")} className="text-xs text-navy underline">
-                Effacer la recherche
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {visible.map((piece) => (
-              <PieceCard
-                key={piece.id}
-                piece={piece}
-                onDelete={handleDelete}
-                onEdit={fetchPieces}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-
+      {/* Modal ajout pièce */}
       {showModal && (
         <AddPieceModal
           onAdd={() => { setShowModal(false); fetchPieces(); }}
           onClose={() => setShowModal(false)}
         />
       )}
+
+      {/* Barre stats */}
+      <StatsWidget />
     </div>
   );
 }

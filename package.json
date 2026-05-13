@@ -4,12 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
     "@imgly/background-removal": "^1.7.0",
+    "@libsql/client": "^0.17.3",
     "@types/better-sqlite3": "^7.6.13",
     "better-sqlite3": "^12.9.0",
     "drizzle-kit": "^0.31.10",

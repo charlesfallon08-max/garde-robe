@@ -1,8 +1,7 @@
+import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
-import path from "path";
 
-// POST /api/upload — reçoit une image et la sauvegarde dans public/uploads/
+// POST /api/upload — reçoit une image et la sauvegarde dans Vercel Blob
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File;
@@ -12,15 +11,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Fichier ou pieceId manquant" }, { status: 400 });
   }
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  // Nom de fichier basé sur l'id de la pièce (remplace les espaces)
   const ext = file.name.split(".").pop() ?? "png";
-  const filename = `${pieceId}.${ext}`;
-  const filepath = path.join(process.cwd(), "public", "uploads", filename);
+  const filename = `pieces/${pieceId}.${ext}`;
 
-  await writeFile(filepath, buffer);
+  const blob = await put(filename, file, { access: "public" });
 
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  return NextResponse.json({ url: blob.url });
 }

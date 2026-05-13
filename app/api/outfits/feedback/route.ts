@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     type:       body.type,                          // "like" | "dislike"
     pieces_ids: JSON.stringify(body.pieces_ids),
     occasion:   body.occasion ?? null,
+    meteo:      body.meteo ?? null,
     raison:     body.raison ?? null,
     date_ajout: new Date().toISOString(),
   };

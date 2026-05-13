@@ -8,12 +8,26 @@ type Props = {
   piece: Piece;
   onDelete: (id: string) => void;
   onEdit: () => void;
+  onStatutChange?: (id: string, statut: string) => void;
 };
 
-export default function PieceCard({ piece, onDelete, onEdit }: Props) {
-  const [hover, setHover]               = useState(false);
+export default function PieceCard({ piece, onDelete, onEdit, onStatutChange }: Props) {
+  const [hover, setHover]                 = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [showEdit, setShowEdit]         = useState(false);
+  const [showEdit, setShowEdit]           = useState(false);
+  const [statut, setStatut]               = useState(piece.statut ?? "possédé");
+
+  const toggleStatut = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = statut === "possédé" ? "wishlist" : "possédé";
+    setStatut(next);
+    await fetch(`/api/pieces/${piece.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...piece, statut: next }),
+    });
+    onStatutChange?.(piece.id, next);
+  };
 
   const handleDelete = () => {
     if (!confirmDelete) { setConfirmDelete(true); return; }
@@ -23,67 +37,75 @@ export default function PieceCard({ piece, onDelete, onEdit }: Props) {
   return (
     <>
       <div
-        className="relative bg-white rounded-sm overflow-hidden shadow-sm border border-sand/20 transition-all duration-200 hover:shadow-md"
+        className="relative bg-white rounded-sm overflow-hidden shadow-sm border border-sand/20 transition-all duration-200 hover:shadow-md flex flex-col"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => { setHover(false); setConfirmDelete(false); }}
       >
-        {/* Zone image ou bande couleur */}
-        {piece.image_url ? (
-          <div className="w-full aspect-square bg-cream flex items-center justify-center overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+        {/* ── Zone photo (grande, occupe la majorité de la carte) ── */}
+        <div
+          className="relative w-full aspect-[3/4] flex items-center justify-center overflow-hidden cursor-pointer"
+          style={{ backgroundColor: piece.image_url ? "var(--cream)" : piece.couleur_hex + "18" }}
+          onClick={() => setShowEdit(true)}
+        >
+          {piece.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={piece.image_url}
               alt={piece.nom}
               className="w-full h-full object-contain"
             />
-          </div>
-        ) : (
-          <div
-            className="h-2 w-full"
-            style={{ backgroundColor: piece.couleur_hex }}
-          />
-        )}
+          ) : (
+            /* Placeholder quand pas de photo */
+            <div className="flex flex-col items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full border-2 border-dashed opacity-40"
+                style={{ borderColor: piece.couleur_hex, backgroundColor: piece.couleur_hex + "33" }}
+              />
+              <span className="text-[10px] uppercase tracking-widest text-ink/30">+ Photo</span>
+            </div>
+          )}
 
-        {/* Contenu texte */}
-        <div className="p-4">
-          <p className="text-xs uppercase tracking-widest text-sand font-body mb-1">
-            {piece.marque}
-          </p>
+          {/* Badge catégorie */}
+          <span className="absolute top-2 left-2 text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-white/80 text-ink/50">
+            {piece.sous_type}
+          </span>
+
+          {/* Badge wishlist */}
+          <button
+            onClick={toggleStatut}
+            title={statut === "wishlist" ? "Marquer comme possédé" : "Ajouter à la wishlist"}
+            className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all text-sm ${
+              statut === "wishlist"
+                ? "bg-terracotta text-white shadow-sm"
+                : "bg-white/70 text-ink/20 hover:bg-white hover:text-ink/40"
+            }`}
+          >
+            ★
+          </button>
+        </div>
+
+        {/* ── Infos texte (compactes en bas) ── */}
+        <div className="px-3 py-3 flex flex-col gap-1 flex-1">
+          <p className="text-[10px] uppercase tracking-widest text-sand leading-none">{piece.marque}</p>
           <h3
-            className="text-lg leading-tight text-ink mb-2"
+            className="text-base leading-tight text-ink"
             style={{ fontFamily: "var(--font-cormorant)" }}
           >
             {piece.nom}
           </h3>
-
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className="w-3 h-3 rounded-full border border-black/10 flex-shrink-0"
-              style={{ backgroundColor: piece.couleur_hex }}
-            />
-            <span className="text-xs text-ink/60">{piece.couleur_nom}</span>
-            <span className="text-xs text-ink/30">·</span>
-            <span className="text-xs text-ink/60 capitalize">{piece.sous_type}</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="w-2.5 h-2.5 rounded-full border border-black/10 flex-shrink-0"
+              style={{ backgroundColor: piece.couleur_hex }} />
+            <span className="text-[11px] text-ink/50">{piece.couleur_nom}</span>
           </div>
-
           {piece.prix_cad && (
-            <p className="text-sm font-medium text-navy">{piece.prix_cad} $</p>
-          )}
-
-          {piece.notes && (
-            <p
-              className="text-xs text-ink/50 mt-2 line-clamp-2 italic"
-              style={{ fontFamily: "var(--font-instrument)" }}
-            >
-              {piece.notes}
-            </p>
+            <p className="text-xs font-medium text-navy mt-0.5">{piece.prix_cad} $</p>
           )}
         </div>
 
-        {/* Actions au hover */}
+        {/* ── Actions au hover ── */}
         {hover && (
-          <div className="absolute bottom-0 left-0 right-0 flex border-t border-sand/20 bg-white">
-            {/* Voir ↗ */}
+          <div className="absolute bottom-0 left-0 right-0 flex border-t border-sand/20 bg-white/95 backdrop-blur-sm">
             {piece.url_achat && (
               <a
                 href={piece.url_achat}
@@ -94,16 +116,12 @@ export default function PieceCard({ piece, onDelete, onEdit }: Props) {
                 Voir ↗
               </a>
             )}
-
-            {/* Éditer */}
             <button
               onClick={() => setShowEdit(true)}
               className="flex-1 py-2 text-center text-xs text-sand hover:bg-sand hover:text-white transition-colors"
             >
               Éditer
             </button>
-
-            {/* Supprimer */}
             <button
               onClick={handleDelete}
               className={`flex-1 py-2 text-center text-xs transition-colors ${
@@ -118,7 +136,6 @@ export default function PieceCard({ piece, onDelete, onEdit }: Props) {
         )}
       </div>
 
-      {/* Modal d'édition */}
       {showEdit && (
         <EditPieceModal
           piece={piece}

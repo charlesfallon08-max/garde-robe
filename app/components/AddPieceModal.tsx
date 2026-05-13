@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { STYLE_TYPES, getStyles } from "@/lib/styleTypes";
 
 type Props = {
   onAdd: () => void;
@@ -9,28 +10,71 @@ type Props = {
 
 const CATEGORIES = ["hauts", "bas", "chaussures", "accessoires"];
 const SOUS_TYPES: Record<string, string[]> = {
-  hauts:       ["tee", "graphic", "shirt", "hoodie", "sweat", "veste", "autre"],
-  bas:         ["short", "jeans", "pantalon", "autre"],
-  chaussures:  ["sneaker", "sandal", "boot", "autre"],
-  accessoires: ["cap", "sunglasses", "bag", "belt", "autre"],
+  hauts:       ["tee", "hoodie", "shirt", "veste"],
+  bas:         ["short", "long"],
+  chaussures:  ["sneaker", "sandal", "boot"],
+  accessoires: ["cap", "sunglasses", "bag", "belt"],
 };
 
 export default function AddPieceModal({ onAdd, onClose }: Props) {
+  const initialCat       = "hauts";
+  const initialSousType  = "tee";
+  const initialStyles    = getStyles(initialCat, initialSousType);
+  const initialStyleType = initialStyles[0] ?? "";
+
   const [form, setForm] = useState({
     marque:      "",
-    nom:         "",
-    categorie:   "hauts",
-    sous_type:   "tee",
+    nom:         initialStyleType,
+    categorie:   initialCat,
+    sous_type:   initialSousType,
+    style_type:  initialStyleType,
+    statut:      "possédé",
     couleur_hex: "#FFFFFF",
     couleur_nom: "",
     prix_cad:    "",
     url_achat:   "",
     notes:       "",
   });
+  const [nomModifié, setNomModifié] = useState(false); // true si l'utilisateur a tapé son propre nom
   const [loading, setLoading] = useState(false);
 
   const set = (field: string, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
+
+  // Quand la catégorie change → reset sous_type + style_type + nom
+  const handleCategorieChange = (cat: string) => {
+    const premierSousType = SOUS_TYPES[cat][0];
+    const styles = getStyles(cat, premierSousType);
+    const premierStyle = styles[0] ?? "";
+    setForm((f) => ({
+      ...f,
+      categorie:  cat,
+      sous_type:  premierSousType,
+      style_type: premierStyle,
+      nom:        nomModifié ? f.nom : premierStyle,
+    }));
+  };
+
+  // Quand le sous_type change → reset style_type + nom (si non modifié)
+  const handleSousTypeChange = (st: string) => {
+    const styles = getStyles(form.categorie, st);
+    const premierStyle = styles[0] ?? "";
+    setForm((f) => ({
+      ...f,
+      sous_type:  st,
+      style_type: premierStyle,
+      nom:        nomModifié ? f.nom : premierStyle,
+    }));
+  };
+
+  // Quand le style_type change → met à jour le nom automatiquement (si non modifié)
+  const handleStyleTypeChange = (st: string) => {
+    setForm((f) => ({
+      ...f,
+      style_type: st,
+      nom:        nomModifié ? f.nom : st,
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,10 +91,11 @@ export default function AddPieceModal({ onAdd, onClose }: Props) {
     onAdd();
   };
 
+  const stylesDisponibles = getStyles(form.categorie, form.sous_type);
+
   return (
     <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-cream rounded-sm shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* En-tête */}
         <div className="flex items-center justify-between p-6 border-b border-sand/30">
           <h2 className="font-display text-2xl text-navy" style={{ fontFamily: "var(--font-cormorant)" }}>
             Nouvelle pièce
@@ -58,140 +103,149 @@ export default function AddPieceModal({ onAdd, onClose }: Props) {
           <button onClick={onClose} className="text-ink/40 hover:text-ink text-xl">✕</button>
         </div>
 
-        {/* Formulaire */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
+          {/* ── Catégorie / Sous-type / Style — 3 niveaux ── */}
+          <div className="space-y-3">
+            {/* Niveau 1 : Catégorie */}
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Catégorie</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {CATEGORIES.map((c) => (
+                  <button key={c} type="button" onClick={() => handleCategorieChange(c)}
+                    className={`px-3 py-1.5 text-xs rounded-full border capitalize transition-colors ${
+                      form.categorie === c ? "bg-navy text-cream border-navy" : "border-sand/40 text-ink/60 hover:border-navy"
+                    }`}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Niveau 2 : Sous-type */}
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Sous-type</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {(SOUS_TYPES[form.categorie] || []).map((s) => (
+                  <button key={s} type="button" onClick={() => handleSousTypeChange(s)}
+                    className={`px-3 py-1.5 text-xs rounded-full border capitalize transition-colors ${
+                      form.sous_type === s ? "bg-sand text-white border-sand" : "border-sand/40 text-ink/60 hover:border-sand"
+                    }`}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Niveau 3 : Style (dépend du sous-type) */}
+            {stylesDisponibles.length > 0 && (
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-sand mb-1">Style</label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {stylesDisponibles.map((s) => (
+                    <button key={s} type="button" onClick={() => handleStyleTypeChange(s)}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                        form.style_type === s ? "bg-terracotta text-white border-terracotta" : "border-sand/40 text-ink/60 hover:border-terracotta"
+                      }`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Marque */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-sand mb-1">Marque</label>
-            <input
-              required
-              value={form.marque}
-              onChange={(e) => set("marque", e.target.value)}
+            <input required value={form.marque} onChange={(e) => set("marque", e.target.value)}
               placeholder="Zara, Uniqlo, Adidas…"
-              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-            />
+              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy" />
           </div>
 
-          {/* Nom */}
+          {/* Nom — pré-rempli, modifiable */}
           <div>
-            <label className="block text-xs uppercase tracking-widest text-sand mb-1">Nom du produit</label>
-            <input
-              required
-              value={form.nom}
-              onChange={(e) => set("nom", e.target.value)}
-              placeholder="T-shirt basique coton"
-              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-            />
-          </div>
-
-          {/* Catégorie + Sous-type */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Catégorie</label>
-              <select
-                value={form.categorie}
-                onChange={(e) => { set("categorie", e.target.value); set("sous_type", SOUS_TYPES[e.target.value][0]); }}
-                className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-xs uppercase tracking-widest text-sand">Nom du produit</label>
+              {nomModifié && (
+                <button type="button" onClick={() => { set("nom", form.style_type); setNomModifié(false); }}
+                  className="text-[10px] text-sand hover:text-navy underline">
+                  Réinitialiser
+                </button>
+              )}
             </div>
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Sous-type</label>
-              <select
-                value={form.sous_type}
-                onChange={(e) => set("sous_type", e.target.value)}
-                className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-              >
-                {(SOUS_TYPES[form.categorie] || []).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
+            <input required value={form.nom}
+              onChange={(e) => { set("nom", e.target.value); setNomModifié(true); }}
+              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy" />
           </div>
 
           {/* Couleur */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Couleur (hex)</label>
+              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Couleur</label>
               <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={form.couleur_hex}
-                  onChange={(e) => set("couleur_hex", e.target.value)}
-                  className="w-10 h-9 border border-sand/40 rounded-sm cursor-pointer"
-                />
-                <input
-                  value={form.couleur_hex}
-                  onChange={(e) => set("couleur_hex", e.target.value)}
-                  className="flex-1 border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-                />
+                <input type="color" value={form.couleur_hex} onChange={(e) => set("couleur_hex", e.target.value)}
+                  className="w-10 h-9 border border-sand/40 rounded-sm cursor-pointer" />
+                <input value={form.couleur_hex} onChange={(e) => set("couleur_hex", e.target.value)}
+                  className="flex-1 border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy" />
               </div>
             </div>
             <div>
               <label className="block text-xs uppercase tracking-widest text-sand mb-1">Nom couleur</label>
-              <input
-                value={form.couleur_nom}
-                onChange={(e) => set("couleur_nom", e.target.value)}
+              <input value={form.couleur_nom} onChange={(e) => set("couleur_nom", e.target.value)}
                 placeholder="Blanc, Navy…"
-                className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-              />
+                className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy" />
             </div>
           </div>
 
           {/* Prix */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-sand mb-1">Prix (CAD)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={form.prix_cad}
-              onChange={(e) => set("prix_cad", e.target.value)}
+            <input type="number" step="0.01" value={form.prix_cad} onChange={(e) => set("prix_cad", e.target.value)}
               placeholder="29.99"
-              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-            />
+              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy" />
           </div>
 
           {/* URL */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-sand mb-1">Lien d'achat</label>
-            <input
-              type="url"
-              value={form.url_achat}
-              onChange={(e) => set("url_achat", e.target.value)}
+            <input type="url" value={form.url_achat} onChange={(e) => set("url_achat", e.target.value)}
               placeholder="https://..."
-              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy"
-            />
+              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy" />
           </div>
 
           {/* Notes */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-sand mb-1">Notes</label>
-            <textarea
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-              rows={2}
+            <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2}
               placeholder="Fit oversized, disponible en plusieurs couleurs…"
-              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy resize-none"
-            />
+              className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy resize-none" />
           </div>
 
-          {/* Boutons */}
+          {/* Statut */}
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-sand mb-1">Statut</label>
+            <div className="flex gap-2">
+              {(["possédé", "wishlist"] as const).map((s) => (
+                <button key={s} type="button" onClick={() => set("statut", s)}
+                  className={`px-4 py-1.5 text-xs rounded-full border capitalize transition-colors ${
+                    form.statut === s
+                      ? s === "wishlist" ? "bg-terracotta text-white border-terracotta" : "bg-navy text-cream border-navy"
+                      : "border-sand/40 text-ink/60 hover:border-navy"
+                  }`}>
+                  {s === "wishlist" ? "★ Wishlist" : "✓ Possédé"}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 border border-sand/40 text-sm text-ink/60 rounded-sm hover:bg-sand/10 transition-colors"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 border border-sand/40 text-sm text-ink/60 rounded-sm hover:bg-sand/10 transition-colors">
               Annuler
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2 bg-navy text-cream text-sm rounded-sm hover:bg-ink transition-colors disabled:opacity-50"
-            >
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2 bg-navy text-cream text-sm rounded-sm hover:bg-ink transition-colors disabled:opacity-50">
               {loading ? "Ajout…" : "Ajouter"}
             </button>
           </div>

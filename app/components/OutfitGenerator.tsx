@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Piece } from "@/db/schema";
 import OutfitFlatlay from "./OutfitFlatlay";
+import { getLocationWeather, type WeatherData } from "@/lib/weather";
 
 type Proposition = {
   pieces_ids: string[];
@@ -29,12 +30,25 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
   const [ancreId, setAncreId]       = useState<string | null>(null);
   const [occasion, setOccasion]     = useState("jour");
   const [meteo, setMeteo]           = useState("chaud");
+  const [meteoReel, setMeteoReel]   = useState<WeatherData | null>(null);
+  const [meteoLoading, setMeteoLoading] = useState(false);
   const [loading, setLoading]       = useState(false);
   const [propositions, setPropositions] = useState<Proposition[]>([]);
   const [source, setSource]         = useState<"claude" | "fallback" | null>(null);
   const [warning, setWarning]       = useState<string | null>(null);
   const [saved, setSaved]           = useState<Set<number>>(new Set());
   const [disliked, setDisliked]     = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setMeteoLoading(true);
+    getLocationWeather().then((data) => {
+      if (data) {
+        setMeteoReel(data);
+        setMeteo(data.meteo);
+      }
+      setMeteoLoading(false);
+    });
+  }, []);
 
   const ancre = allPieces.find((p) => p.id === ancreId);
 
@@ -49,7 +63,7 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
     const res = await fetch("/api/outfits/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ancre_id: ancreId, occasion, meteo }),
+      body: JSON.stringify({ ancre_id: ancreId, occasion, meteo, meteo_reel: meteoReel }),
     });
     const data = await res.json();
     setPropositions(data.propositions ?? []);
@@ -79,7 +93,7 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
     await fetch("/api/outfits/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "like", pieces_ids: prop.pieces_ids, occasion }),
+      body: JSON.stringify({ type: "like", pieces_ids: prop.pieces_ids, occasion, meteo }),
     });
     setSaved((prev) => new Set(prev).add(idx));
     onSaved();
@@ -90,7 +104,7 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
     await fetch("/api/outfits/feedback", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "dislike", pieces_ids: prop.pieces_ids, occasion }),
+      body: JSON.stringify({ type: "dislike", pieces_ids: prop.pieces_ids, occasion, meteo }),
     });
     setDisliked((prev) => new Set(prev).add(idx));
   };
@@ -120,7 +134,15 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
 
         {/* Sélecteur météo */}
         <div className="mb-6">
-          <p className="text-xs uppercase tracking-widest text-sand mb-2">Météo (optionnel)</p>
+          <div className="flex items-center gap-3 mb-2">
+            <p className="text-xs uppercase tracking-widest text-sand">Météo</p>
+            {meteoLoading && <span className="text-[10px] text-ink/30 animate-pulse">Détection…</span>}
+            {meteoReel && !meteoLoading && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-navy/10 text-navy">
+                {meteoReel.temp}°C · {meteoReel.label}
+              </span>
+            )}
+          </div>
           <div className="flex gap-2">
             {METEOS.map((m) => (
               <button key={m} onClick={() => setMeteo(m)}
@@ -128,9 +150,15 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
                   meteo === m ? "bg-sand text-white border-sand" : "border-sand/40 text-ink/60 hover:border-sand"
                 }`}>
                 {METEO_ICONS[m]} {m}
+                {meteoReel?.meteo === m && <span className="ml-1 opacity-70">●</span>}
               </button>
             ))}
           </div>
+          {meteoReel && (
+            <p className="text-[10px] text-ink/30 mt-1.5">
+              Météo réelle détectée · le 1er outfit sera adapté à {meteoReel.temp}°C
+            </p>
+          )}
         </div>
 
         {/* Sélecteur pièce ancre */}

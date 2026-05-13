@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Trop de requêtes. Attends 1 minute." }, { status: 429 });
   }
 
-  const { ancre_id, occasion, meteo } = await req.json();
+  const { ancre_id, occasion, meteo, meteo_reel } = await req.json();
+  // meteo_reel = { temp: number, label: string, meteo: string } depuis l'API météo
 
   // Charge toutes les pièces + préférences récentes
   const allPieces = await db.select().from(pieces);
@@ -90,9 +91,13 @@ export async function POST(req: NextRequest) {
   if (!ancre) return NextResponse.json({ error: "Pièce introuvable" }, { status: 404 });
 
   const likesContext = recentPrefs.filter((p) => p.type === "like")
-    .map((p) => `Likes: ${JSON.parse(p.pieces_ids).join(", ")}${p.occasion ? ` pour ${p.occasion}` : ""}`).join("\n");
+    .map((p) => `Likes: ${JSON.parse(p.pieces_ids).join(", ")}${p.occasion ? ` pour ${p.occasion}` : ""}${p.meteo ? ` (météo: ${p.meteo})` : ""}`).join("\n");
   const dislikesContext = recentPrefs.filter((p) => p.type === "dislike")
     .map((p) => `N'aime pas: ${JSON.parse(p.pieces_ids).join(", ")}`).join("\n");
+
+  const meteoReelContext = meteo_reel
+    ? `Météo réelle actuelle: ${meteo_reel.temp}°C, ${meteo_reel.label} → catégorie "${meteo_reel.meteo}"`
+    : null;
 
   try {
     const response = await client.messages.create({
@@ -112,8 +117,9 @@ export async function POST(req: NextRequest) {
           content: `Génère 3 propositions d'outfit pour la pièce ancre suivante:
 - Pièce ancre: ${ancre.marque} ${ancre.nom} (${ancre.couleur_nom}, ${ancre.sous_type})
 - Occasion: ${occasion ?? "casual"}
-- Météo: ${meteo ?? "chaud"}
-${likesContext ? `\nCombos que j'aime:\n${likesContext}` : ""}
+- Météo sélectionnée: ${meteo ?? "chaud"}
+${meteoReelContext ? `- ${meteoReelContext}` : ""}
+${likesContext ? `\nCombos que j'aime (apprendre de ces préférences):\n${likesContext}` : ""}
 ${dislikesContext ? `\nCombos à éviter:\n${dislikesContext}` : ""}
 
 Réponds UNIQUEMENT en JSON valide avec ce format exact:
@@ -131,7 +137,8 @@ Règles importantes:
 - Inclure obligatoirement: 1 haut + 1 bas + 1 chaussure (+ 1 accessoire si pertinent)
 - La pièce ancre DOIT être incluse dans chaque proposition
 - Utiliser UNIQUEMENT les ids existants dans la garde-robe
-- Respecter les color_rules et forbidden_combos`,
+- Respecter les color_rules et forbidden_combos
+${meteoReelContext ? `- IMPORTANT: La PREMIÈRE proposition doit être parfaitement adaptée à la météo réelle (${meteo_reel!.temp}°C, ${meteo_reel!.label}). Mentionne explicitement dans l'explication pourquoi cet outfit convient à cette météo.` : ""}`,
         },
       ],
     });

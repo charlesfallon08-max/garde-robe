@@ -7,6 +7,7 @@ import AddPieceModal from "./components/AddPieceModal";
 import OutfitCard from "./components/OutfitCard";
 import OutfitGenerator from "./components/OutfitGenerator";
 import StatsWidget from "./components/StatsWidget";
+import { getStyleSortIndex } from "@/lib/styleTypes";
 
 type Tab = "garderobe" | "outfits";
 
@@ -16,6 +17,7 @@ const PIECE_CATEGORIES = [
   { key: "bas", label: "Bas" },
   { key: "chaussures", label: "Chaussures" },
   { key: "accessoires", label: "Accessoires" },
+  { key: "wishlist", label: "★ Wishlist" },
 ];
 
 const OUTFIT_OCCASIONS = [
@@ -71,12 +73,35 @@ export default function Home() {
     setOutfits((prev) => prev.filter((o) => o.id !== id));
   };
 
+  const CATEGORIE_ORDER: Record<string, number> = {
+    hauts: 0, bas: 1, chaussures: 2, accessoires: 3,
+  };
+
+  const handleStatutChange = (id: string, statut: string) => {
+    setPieces((prev) => prev.map((p) => p.id === id ? { ...p, statut } as typeof p : p));
+  };
+
+  const wishlistPieces = pieces.filter((p) => p.statut === "wishlist");
+  const wishlistTotal  = wishlistPieces.reduce((sum, p) => sum + (p.prix_cad ?? 0), 0);
+
   const visiblePieces = pieces
-    .filter((p) => pieceFilter === "all" || p.categorie === pieceFilter)
+    .filter((p) => {
+      if (pieceFilter === "wishlist") return p.statut === "wishlist";
+      return pieceFilter === "all" || p.categorie === pieceFilter;
+    })
     .filter((p) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return p.nom.toLowerCase().includes(q) || p.marque.toLowerCase().includes(q) || p.couleur_nom.toLowerCase().includes(q);
+    })
+    .sort((a, b) => {
+      // 1. Catégorie (hauts → bas → chaussures → accessoires)
+      const catDiff = (CATEGORIE_ORDER[a.categorie] ?? 9) - (CATEGORIE_ORDER[b.categorie] ?? 9);
+      if (catDiff !== 0) return catDiff;
+      // 2. Style dans l'ordre exact défini dans styleTypes.ts
+      const aStyle = (a as typeof a & { style_type?: string }).style_type ?? "";
+      const bStyle = (b as typeof b & { style_type?: string }).style_type ?? "";
+      return getStyleSortIndex(a.categorie, aStyle) - getStyleSortIndex(b.categorie, bStyle);
     });
 
   const visibleOutfits = outfits.filter(
@@ -126,16 +151,27 @@ export default function Home() {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex gap-2 flex-wrap">
                 {PIECE_CATEGORIES.map(({ key, label }) => {
-                  const count = key === "all" ? pieces.length : pieces.filter((p) => p.categorie === key).length;
+                  const count = key === "wishlist"
+                    ? wishlistPieces.length
+                    : key === "all"
+                      ? pieces.length
+                      : pieces.filter((p) => p.categorie === key).length;
                   return (
                     <button key={key} onClick={() => setPieceFilter(key)}
                       className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full border transition-colors ${
-                        pieceFilter === key ? "bg-navy text-cream border-navy" : "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
+                        pieceFilter === key
+                          ? key === "wishlist" ? "bg-terracotta text-white border-terracotta" : "bg-navy text-cream border-navy"
+                          : "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
                       }`}>
-                      {label} <span className={`ml-1 ${pieceFilter === key ? "text-sand" : "text-ink/30"}`}>{count}</span>
+                      {label} <span className={`ml-1 ${pieceFilter === key ? "opacity-70" : "text-ink/30"}`}>{count}</span>
                     </button>
                   );
                 })}
+                {pieceFilter === "wishlist" && wishlistTotal > 0 && (
+                  <span className="flex items-center text-xs text-terracotta font-medium px-2">
+                    Total : {wishlistTotal.toFixed(0)} $ CAD
+                  </span>
+                )}
               </div>
               <button onClick={() => setShowModal(true)}
                 className="flex items-center gap-2 px-5 py-2 bg-navy text-cream text-xs uppercase tracking-widest rounded-sm hover:bg-ink transition-colors">
@@ -161,7 +197,7 @@ export default function Home() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {visiblePieces.map((piece) => (
-                  <PieceCard key={piece.id} piece={piece} onDelete={handleDeletePiece} onEdit={fetchPieces} />
+                  <PieceCard key={piece.id} piece={piece} onDelete={handleDeletePiece} onEdit={fetchPieces} onStatutChange={handleStatutChange} />
                 ))}
               </div>
             )}

@@ -15,6 +15,8 @@ export async function PUT(
     nom:         body.nom,
     categorie:   body.categorie,
     sous_type:   body.sous_type,
+    style_type:  body.style_type ?? null,
+    statut:      body.statut ?? "possédé",
     couleur_hex: body.couleur_hex,
     couleur_nom: body.couleur_nom,
     prix_cad:    body.prix_cad ?? null,

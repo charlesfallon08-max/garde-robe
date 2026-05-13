@@ -11,6 +11,8 @@ export const pieces = sqliteTable("pieces", {
   prix_cad:    real("prix_cad"),
   url_achat:   text("url_achat"),
   image_url:   text("image_url"),
+  style_type:  text("style_type"),              // ex: "Basic color tshirt", "Zip up"
+  statut:      text("statut").default("possédé"), // "possédé" | "wishlist"
   notes:       text("notes"),
   date_ajout:  text("date_ajout").notNull(),
 });
@@ -32,6 +34,7 @@ export const preferences = sqliteTable("preferences", {
   type:        text("type").notNull(),         // "like" | "dislike"
   pieces_ids:  text("pieces_ids").notNull(),   // JSON array d'ids
   occasion:    text("occasion"),
+  meteo:       text("meteo"),                  // "chaud" | "frais" | "pluvieux"
   raison:      text("raison"),                 // texte optionnel
   date_ajout:  text("date_ajout").notNull(),
 });

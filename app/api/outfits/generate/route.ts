@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { auth } from "@/auth";
 import { db } from "@/db";
 import { pieces, preferences, usage_stats } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -51,6 +52,10 @@ function fallbackOutfit(ancreId: string, allPieces: typeof pieces.$inferSelect[]
 }
 
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+  const userId = session.user.id;
+
   const ip = req.headers.get("x-forwarded-for") ?? "local";
   const { ok } = checkRateLimit(ip);
   if (!ok) {
@@ -58,11 +63,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { ancre_id, occasion, meteo, meteo_reel } = await req.json();
-  // meteo_reel = { temp: number, label: string, meteo: string } depuis l'API météo
 
-  // Charge toutes les pièces + préférences récentes
-  const allPieces = await db.select().from(pieces);
-  const recentPrefs = await db.select().from(preferences).orderBy(desc(preferences.date_ajout)).limit(20);
+  // Charge les pièces + préférences de l'utilisateur
+  const allPieces = await db.select().from(pieces).where(eq(pieces.user_id, userId));
+  const recentPrefs = await db.select().from(preferences)
+    .where(and(eq(preferences.user_id, userId)))
+    .orderBy(desc(preferences.date_ajout)).limit(20);
 
   // Contexte de la garde-robe (sera mis en cache par Claude)
   const gardeRobeContext = JSON.stringify({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSession, signOut } from "next-auth/react";
 import type { Piece, Outfit } from "@/db/schema";
 import PieceCard from "./components/PieceCard";
 import AddPieceModal from "./components/AddPieceModal";
@@ -30,6 +31,7 @@ const OUTFIT_OCCASIONS = [
 ];
 
 export default function Home() {
+  const { data: session } = useSession();
   const [tab, setTab]             = useState<Tab>("garderobe");
   const [pieces, setPieces]       = useState<Piece[]>([]);
   const [outfits, setOutfits]     = useState<Outfit[]>([]);
@@ -112,15 +114,29 @@ export default function Home() {
     <div className="min-h-screen pb-12" style={{ backgroundColor: "var(--cream)" }}>
       {/* En-tête */}
       <header className="border-b border-sand/30 px-6 py-8">
-        <p className="text-xs uppercase tracking-[0.3em] text-sand mb-2">Collection personnelle</p>
-        <h1 className="text-5xl text-navy leading-none"
-          style={{ fontFamily: "var(--font-cormorant)", fontWeight: 300 }}>
-          Garde-Robe
-        </h1>
-        <p className="text-xl text-ink/50 mt-1"
-          style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}>
-          Printemps — Été 2026
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-sand mb-2">Collection personnelle</p>
+            <h1 className="text-5xl text-navy leading-none"
+              style={{ fontFamily: "var(--font-cormorant)", fontWeight: 300 }}>
+              Garde-Robe
+            </h1>
+            <p className="text-xl text-ink/50 mt-1"
+              style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}>
+              Printemps — Été 2026
+            </p>
+          </div>
+          <div className="flex items-center gap-3 mt-1">
+            {session?.user?.image && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={session.user.image} alt="" className="w-8 h-8 rounded-full" />
+            )}
+            <button onClick={() => signOut()}
+              className="text-[11px] uppercase tracking-widest text-ink/30 hover:text-ink/70 transition-colors">
+              Déconnexion
+            </button>
+          </div>
+        </div>
       </header>
 
       {/* Navigation onglets */}

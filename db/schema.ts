@@ -2,6 +2,7 @@ import { sqliteTable, text, integer, real } from "drizzle-orm/sqlite-core";
 
 export const pieces = sqliteTable("pieces", {
   id:          text("id").primaryKey(),
+  user_id:     text("user_id"),
   marque:      text("marque").notNull(),
   nom:         text("nom").notNull(),
   categorie:   text("categorie").notNull(),
@@ -11,8 +12,8 @@ export const pieces = sqliteTable("pieces", {
   prix_cad:    real("prix_cad"),
   url_achat:   text("url_achat"),
   image_url:   text("image_url"),
-  style_type:  text("style_type"),              // ex: "Basic color tshirt", "Zip up"
-  statut:      text("statut").default("possédé"), // "possédé" | "wishlist"
+  style_type:  text("style_type"),
+  statut:      text("statut").default("possédé"),
   notes:       text("notes"),
   date_ajout:  text("date_ajout").notNull(),
 });
@@ -20,10 +21,11 @@ export const pieces = sqliteTable("pieces", {
 // Outfits sauvegardés
 export const outfits = sqliteTable("outfits", {
   id:          text("id").primaryKey(),
-  pieces_ids:  text("pieces_ids").notNull(),   // JSON array d'ids
-  occasion:    text("occasion"),               // jour | soir | beach | terrasse | école
-  explication: text("explication"),            // texte de Claude
-  score:       integer("score"),               // 1-10
+  user_id:     text("user_id"),
+  pieces_ids:  text("pieces_ids").notNull(),
+  occasion:    text("occasion"),
+  explication: text("explication"),
+  score:       integer("score"),
   prix_total:  real("prix_total"),
   date_ajout:  text("date_ajout").notNull(),
 });
@@ -31,11 +33,12 @@ export const outfits = sqliteTable("outfits", {
 // Préférences apprises (likes/dislikes de combinaisons)
 export const preferences = sqliteTable("preferences", {
   id:          text("id").primaryKey(),
-  type:        text("type").notNull(),         // "like" | "dislike"
-  pieces_ids:  text("pieces_ids").notNull(),   // JSON array d'ids
+  user_id:     text("user_id"),
+  type:        text("type").notNull(),
+  pieces_ids:  text("pieces_ids").notNull(),
   occasion:    text("occasion"),
-  meteo:       text("meteo"),                  // "chaud" | "frais" | "pluvieux"
-  raison:      text("raison"),                 // texte optionnel
+  meteo:       text("meteo"),
+  raison:      text("raison"),
   date_ajout:  text("date_ajout").notNull(),
 });
 

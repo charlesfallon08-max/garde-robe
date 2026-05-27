@@ -1,29 +1,37 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { db } from "@/db";
 import { pieces } from "@/db/schema";
-import { count } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import fs from "fs";
 import path from "path";
 
-// POST /api/pieces/seed — importe les 19 pièces du JSON si la table est vide
 export async function POST() {
-  const [{ value }] = await db.select({ value: count() }).from(pieces);
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const userId = session.user.id;
+  const [{ value }] = await db.select({ value: count() }).from(pieces).where(eq(pieces.user_id, userId));
   if (value > 0) {
     return NextResponse.json({ message: "Déjà peuplé", count: value });
   }
 
   const jsonPath = path.join(process.cwd(), "garde-robe-export.json");
+  if (!fs.existsSync(jsonPath)) {
+    return NextResponse.json({ message: "Pas de données initiales", count: 0 });
+  }
+
   const raw = fs.readFileSync(jsonPath, "utf-8");
   const data = JSON.parse(raw);
 
   const now = new Date().toISOString();
-  // Mappe les champs du JSON vers le schéma DB
   const rows = data.items.map((item: {
     id: string; brand: string; name: string; category: string;
     subtype: string; color_hex: string; color_name: string;
     price_cad: number; url: string; note: string;
   }) => ({
     id:          item.id,
+    user_id:     userId,
     marque:      item.brand,
     nom:         item.name,
     categorie:   item.category,

@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { db } from "@/db";
 import { pieces } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
-// GET /api/pieces — retourne toutes les pièces
 export async function GET() {
-  const all = await db.select().from(pieces);
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
+  const all = await db.select().from(pieces).where(eq(pieces.user_id, session.user.id));
   return NextResponse.json(all);
 }
 
-// POST /api/pieces — ajoute une nouvelle pièce
 export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+
   const body = await req.json();
   const newPiece = {
     id:          body.id ?? randomUUID(),
+    user_id:     session.user.id,
     marque:      body.marque,
     nom:         body.nom,
     categorie:   body.categorie,

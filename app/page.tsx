@@ -45,11 +45,13 @@ export default function Home() {
 
   const fetchPieces = useCallback(async () => {
     const res = await fetch("/api/pieces");
+    if (!res.ok) return;
     setPieces(await res.json());
   }, []);
 
   const fetchOutfits = useCallback(async () => {
     const res = await fetch("/api/outfits");
+    if (!res.ok) return;
     setOutfits(await res.json());
   }, []);
 

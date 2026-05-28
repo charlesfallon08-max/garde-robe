@@ -5,7 +5,10 @@
       "Bash(npm --version)",
       "Bash(npx --version)",
       "Bash(rm -rf /Users/charlesfallon/garde-robe/node_modules /Users/charlesfallon/garde-robe/package-lock.json)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(node -e ' *)",
+      "Bash(npm list *)"
     ]
   }
 }

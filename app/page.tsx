@@ -56,6 +56,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!session?.user?.id) return;
     const init = async () => {
       if (!seeded) {
         await fetch("/api/pieces/seed", { method: "POST" });
@@ -65,7 +66,7 @@ export default function Home() {
       setLoading(false);
     };
     init();
-  }, [seeded, fetchPieces, fetchOutfits]);
+  }, [session, seeded, fetchPieces, fetchOutfits]);
 
   const handleDeletePiece = async (id: string) => {
     await fetch(`/api/pieces/${id}`, { method: "DELETE" });

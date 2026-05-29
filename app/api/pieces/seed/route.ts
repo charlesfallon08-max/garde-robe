@@ -17,8 +17,8 @@ export async function POST() {
 
   // Migrer les pièces d'un ancien user_id vers le compte Google actuel
   const allPieces = await db.select({ user_id: pieces.user_id }).from(pieces);
-  if (allPieces.length > 0) {
-    const oldUserId = allPieces[0].user_id;
+  const oldUserId = allPieces[0]?.user_id ?? null;
+  if (oldUserId) {
     await db.update(pieces).set({ user_id: userId }).where(eq(pieces.user_id, oldUserId));
     return NextResponse.json({ message: "Migration OK", count: allPieces.length });
   }

@@ -3,8 +3,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { pieces } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
-import fs from "fs";
-import path from "path";
+import seedData from "@/garde-robe-export.json";
 
 export async function POST() {
   const session = await auth();
@@ -16,13 +15,7 @@ export async function POST() {
     return NextResponse.json({ message: "Déjà peuplé", count: value });
   }
 
-  const jsonPath = path.join(process.cwd(), "garde-robe-export.json");
-  if (!fs.existsSync(jsonPath)) {
-    return NextResponse.json({ message: "Pas de données initiales", count: 0 });
-  }
-
-  const raw = fs.readFileSync(jsonPath, "utf-8");
-  const data = JSON.parse(raw);
+  const data = seedData;
 
   const now = new Date().toISOString();
   const rows = data.items.map((item: {

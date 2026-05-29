@@ -15,6 +15,14 @@ export async function POST() {
     return NextResponse.json({ message: "Déjà peuplé", count: value });
   }
 
+  // Migrer les pièces d'un ancien user_id vers le compte Google actuel
+  const allPieces = await db.select({ user_id: pieces.user_id }).from(pieces);
+  if (allPieces.length > 0) {
+    const oldUserId = allPieces[0].user_id;
+    await db.update(pieces).set({ user_id: userId }).where(eq(pieces.user_id, oldUserId));
+    return NextResponse.json({ message: "Migration OK", count: allPieces.length });
+  }
+
   const data = seedData;
 
   const now = new Date().toISOString();

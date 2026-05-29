@@ -45,5 +45,5 @@ next-env.d.ts
 *.db-wal
 *.db-shm
 
-# Images uploadées localement
-/public/uploads/
+# Images uploadées localement (commises dans git pour Vercel)
+# /public/uploads/

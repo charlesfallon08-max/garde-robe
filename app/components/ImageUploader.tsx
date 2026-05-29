@@ -19,19 +19,27 @@ const MODEL_LABELS: Record<Model, string> = {
 };
 
 export default function ImageUploader({ pieceId, currentImageUrl, onUploaded }: Props) {
-  const [status, setStatus]   = useState<"idle" | "removing" | "uploading" | "done" | "error">("idle");
-  const [preview, setPreview] = useState<string | null>(currentImageUrl);
-  const [model, setModel]     = useState<Model>("isnet");
+  const [status, setStatus]     = useState<"idle" | "removing" | "uploading" | "done" | "error">("idle");
+  const [preview, setPreview]   = useState<string | null>(currentImageUrl);
+  const [model, setModel]       = useState<Model>("isnet");
   const [tolerance, setTolerance] = useState(3);
+  const [dlProgress, setDlProgress] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     setStatus("removing");
+    setDlProgress(null);
     try {
       // Détourage IA avec le modèle sélectionné
       let blob = await removeBackground(file, {
         model,
         output: { format: "image/png", quality: 1 },
+        proxyToWorker: false,
+        progress: (key, current, total) => {
+          if (key.includes("fetch") || key.includes("load")) {
+            setDlProgress(total > 0 ? Math.round((current / total) * 100) : null);
+          }
+        },
       });
 
       // Post-traitement canvas : érosion + lissage + seuillage
@@ -47,8 +55,10 @@ export default function ImageUploader({ pieceId, currentImageUrl, onUploaded }: 
       setPreview(url);
       setStatus("done");
       onUploaded(url);
-    } catch {
+    } catch (err) {
+      console.error("[ImageUploader] Erreur détourage:", err);
       setStatus("error");
+      setDlProgress(null);
     }
   };
 
@@ -108,9 +118,12 @@ export default function ImageUploader({ pieceId, currentImageUrl, onUploaded }: 
           status === "error"   ? "border-terracotta text-terracotta" :
           "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
         } disabled:opacity-50`}>
-        {status === "removing" || status === "uploading"
-          ? <span className="animate-pulse">{statusLabels[status]}</span>
-          : statusLabels[status]}
+        {status === "removing" || status === "uploading" ? (
+          <span className="animate-pulse">
+            {statusLabels[status]}
+            {status === "removing" && dlProgress !== null && ` ${dlProgress}%`}
+          </span>
+        ) : statusLabels[status]}
       </button>
 
       <input ref={inputRef} type="file" accept="image/*" className="hidden"

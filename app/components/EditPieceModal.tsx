@@ -14,12 +14,11 @@ type Props = {
 };
 
 const CATEGORIES = ["hauts", "bas", "chaussures", "accessoires"];
-const SOUS_TYPES: Record<string, string[]> = {
-  hauts:       ["tee", "hoodie", "shirt", "veste"],
-  bas:         ["short", "long"],
-  chaussures:  ["sneaker", "sandal", "boot"],
-  accessoires: ["cap", "sunglasses", "bag", "belt"],
-};
+const SOUS_TYPES: Record<string, string[]> = Object.fromEntries(
+  Object.entries(STYLE_TYPES).map(([cat, sousTypes]) => [cat, Object.keys(sousTypes)])
+);
+const SAISONS = ["toutes", "ete", "hiver"] as const;
+const SAISON_LABELS: Record<string, string> = { toutes: "Toutes", ete: "☀️ Été", hiver: "❄️ Hiver" };
 
 export default function EditPieceModal({ piece, onSave, onClose }: Props) {
   const [form, setForm] = useState({
@@ -28,6 +27,7 @@ export default function EditPieceModal({ piece, onSave, onClose }: Props) {
     categorie:   piece.categorie,
     sous_type:   piece.sous_type,
     style_type:  (piece as Piece & { style_type?: string }).style_type ?? "",
+    saison:      (piece as Piece & { saison?: string }).saison ?? "toutes",
     statut:      piece.statut ?? "possédé",
     couleur_hex: piece.couleur_hex,
     couleur_nom: piece.couleur_nom,
@@ -285,6 +285,21 @@ export default function EditPieceModal({ piece, onSave, onClose }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Saison */}
+            <div>
+              <label className="block text-xs uppercase tracking-widest text-sand mb-1">Saison</label>
+              <div className="flex gap-2">
+                {SAISONS.map((s) => (
+                  <button key={s} type="button" onClick={() => set("saison", s)}
+                    className={`px-4 py-1.5 text-xs rounded-full border transition-colors ${
+                      form.saison === s ? "bg-navy text-cream border-navy" : "border-sand/40 text-ink/60 hover:border-navy"
+                    }`}>
+                    {SAISON_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Statut */}
             <div>

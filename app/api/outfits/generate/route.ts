@@ -62,18 +62,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Trop de requêtes. Attends 1 minute." }, { status: 429 });
   }
 
-  const { ancre_id, occasion, meteo, meteo_reel } = await req.json();
+  const { ancre_id, occasion, meteo, meteo_reel, saison } = await req.json();
 
   // Charge les pièces + préférences de l'utilisateur
-  const allPieces = await db.select().from(pieces).where(eq(pieces.user_id, userId));
+  const allOwnedPieces = await db.select().from(pieces).where(eq(pieces.user_id, userId));
+  const allPieces = allOwnedPieces.filter((p) => !p.saison || p.saison === "toutes" || p.saison === saison);
   const recentPrefs = await db.select().from(preferences)
     .where(and(eq(preferences.user_id, userId)))
     .orderBy(desc(preferences.date_ajout)).limit(20);
 
   // Contexte de la garde-robe (sera mis en cache par Claude)
+  const isHiver = saison === "hiver";
   const gardeRobeContext = JSON.stringify({
-    style: "Coastal starboy / Old money décontracté, Printemps-Été 2026",
-    style_notes: [
+    style: isHiver
+      ? "Coastal starboy / Old money décontracté, Automne-Hiver 2026"
+      : "Coastal starboy / Old money décontracté, Printemps-Été 2026",
+    style_notes: isHiver ? [
+      "Masculin, oversized/relaxed fits uniquement",
+      "Superposition (layering) : pull ou tee sous manteau/parka",
+      "Palette dominante : navy, camel, gris, bordeaux, écru",
+      "Matières : laine, tweed, doudoune",
+      "Chaussures : boots (Chelsea, ankle, snow), pas de sandales",
+      "Accessoires : écharpe, gants, bonnet pour le grand froid",
+    ] : [
       "Masculin, oversized/relaxed fits uniquement",
       "Esthétique côte méditerranéenne / European summer",
       "Palette dominante : blanc, écru, navy, beige, sand, kaki",
@@ -85,7 +96,9 @@ export async function POST(req: NextRequest) {
       neutrals: ["blanc", "écru", "beige", "gris"],
       accents: ["navy", "terracotta", "sand", "sage"],
     },
-    forbidden_combos: ["graphic tee + chemise à motifs", "2 graphics", "hoodie + chemise"],
+    forbidden_combos: isHiver
+      ? ["graphic tee + chemise à motifs", "2 graphics", "shorts", "sandales"]
+      : ["graphic tee + chemise à motifs", "2 graphics", "hoodie + chemise"],
     garde_robe: allPieces.map((p) => ({
       id: p.id, marque: p.marque, nom: p.nom,
       categorie: p.categorie, sous_type: p.sous_type,

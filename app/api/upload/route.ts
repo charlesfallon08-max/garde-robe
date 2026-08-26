@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
   const ext = file.name.split(".").pop() ?? "png";
   const filename = `pieces/${pieceId}.${ext}`;
 
-  const blob = await put(filename, file, { access: "public" });
-
-  return NextResponse.json({ url: blob.url });
+  try {
+    const blob = await put(filename, file, { access: "public", allowOverwrite: true });
+    return NextResponse.json({ url: blob.url });
+  } catch (err) {
+    console.error("[upload] Erreur Vercel Blob:", err);
+    const message = err instanceof Error ? err.message : "Upload échoué";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

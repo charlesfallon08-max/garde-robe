@@ -1,4 +1,4 @@
-export type MeteoCategory = "chaud" | "frais" | "pluvieux";
+export type MeteoCategory = "chaud" | "frais" | "froid" | "pluvieux";
 
 export type WeatherData = {
   temp: number;         // °C
@@ -27,7 +27,9 @@ function codeToMeteo(code: number, temp: number): MeteoCategory {
   if ([45, 48, 51, 53, 55, 61, 63, 65, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99].includes(code)) {
     return "pluvieux";
   }
-  return temp >= 18 ? "chaud" : "frais";
+  if (temp >= 18) return "chaud";
+  if (temp >= 5) return "frais";
+  return "froid";
 }
 
 export async function fetchWeather(lat: number, lon: number): Promise<WeatherData> {

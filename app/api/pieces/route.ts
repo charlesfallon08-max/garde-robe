@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     categorie:   body.categorie,
     sous_type:   body.sous_type,
     style_type:  body.style_type ?? null,
+    saison:      body.saison ?? "ete",
     statut:      body.statut ?? "possédé",
     couleur_hex: body.couleur_hex ?? "#000000",
     couleur_nom: body.couleur_nom ?? "",

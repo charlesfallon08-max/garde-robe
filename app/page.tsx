@@ -11,6 +11,12 @@ import StatsWidget from "./components/StatsWidget";
 import { getStyleSortIndex } from "@/lib/styleTypes";
 
 type Tab = "garderobe" | "outfits";
+type Season = "ete" | "hiver";
+
+function defaultSeason(): Season {
+  const month = new Date().getMonth(); // 0 = janvier
+  return month === 11 || month === 0 || month === 1 ? "hiver" : "ete";
+}
 
 const PIECE_CATEGORIES = [
   { key: "all", label: "Tout" },
@@ -42,6 +48,20 @@ export default function Home() {
   const [seeded, setSeeded]       = useState(false);
   const [loading, setLoading]     = useState(true);
   const [showGenerator, setShowGenerator] = useState(false);
+  const [season, setSeason] = useState<Season>("ete");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("garde-robe-season");
+    setSeason(stored === "ete" || stored === "hiver" ? stored : defaultSeason());
+  }, []);
+
+  const handleSeasonChange = (s: Season) => {
+    setSeason(s);
+    localStorage.setItem("garde-robe-season", s);
+  };
 
   const fetchPieces = useCallback(async () => {
     const res = await fetch("/api/pieces");
@@ -86,10 +106,47 @@ export default function Home() {
     setPieces((prev) => prev.map((p) => p.id === id ? { ...p, statut } as typeof p : p));
   };
 
-  const wishlistPieces = pieces.filter((p) => p.statut === "wishlist");
+  const otherSeason: Season = season === "ete" ? "hiver" : "ete";
+
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => !prev);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelectPiece = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const addSelectedToOtherSeason = async () => {
+    setBulkSaving(true);
+    const targets = pieces.filter((p) => selectedIds.has(p.id));
+    await Promise.all(targets.map((p) =>
+      fetch(`/api/pieces/${p.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...p, saison: "toutes" }),
+      })
+    ));
+    await fetchPieces();
+    setBulkSaving(false);
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const bySeason = (p: Piece) => {
+    const s = (p as Piece & { saison?: string }).saison;
+    return !s || s === "toutes" || s === season;
+  };
+
+  const seasonPieces = pieces.filter(bySeason);
+  const wishlistPieces = seasonPieces.filter((p) => p.statut === "wishlist");
   const wishlistTotal  = wishlistPieces.reduce((sum, p) => sum + (p.prix_cad ?? 0), 0);
 
-  const visiblePieces = pieces
+  const visiblePieces = seasonPieces
     .filter((p) => {
       if (pieceFilter === "wishlist") return p.statut === "wishlist";
       return pieceFilter === "all" || p.categorie === pieceFilter;
@@ -126,10 +183,24 @@ export default function Home() {
             </h1>
             <p className="text-xl text-ink/50 mt-1"
               style={{ fontFamily: "var(--font-instrument)", fontStyle: "italic" }}>
-              Printemps — Été 2026
+              {season === "hiver" ? "Automne — Hiver 2026" : "Printemps — Été 2026"}
             </p>
           </div>
           <div className="flex items-center gap-3 mt-1">
+            <div className="flex rounded-full border border-sand/40 overflow-hidden">
+              <button onClick={() => handleSeasonChange("ete")}
+                className={`px-3 py-1.5 text-xs transition-colors ${
+                  season === "ete" ? "bg-navy text-cream" : "text-ink/50 hover:bg-sand/10"
+                }`}>
+                ☀️ Été
+              </button>
+              <button onClick={() => handleSeasonChange("hiver")}
+                className={`px-3 py-1.5 text-xs transition-colors ${
+                  season === "hiver" ? "bg-navy text-cream" : "text-ink/50 hover:bg-sand/10"
+                }`}>
+                ❄️ Hiver
+              </button>
+            </div>
             {session?.user?.image && (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img src={session.user.image} alt="" className="w-8 h-8 rounded-full" />
@@ -151,7 +222,7 @@ export default function Home() {
           Ma Garde-Robe
           <span className="ml-2 text-xs text-ink/30">{pieces.length}</span>
         </button>
-        <button onClick={() => setTab("outfits")}
+        <button onClick={() => { setTab("outfits"); setSelectMode(false); setSelectedIds(new Set()); }}
           className={`py-4 text-sm uppercase tracking-widest border-b-2 -mb-px transition-colors ${
             tab === "outfits" ? "text-navy border-navy" : "text-ink/40 border-transparent hover:text-ink/70"
           }`}>
@@ -173,8 +244,8 @@ export default function Home() {
                   const count = key === "wishlist"
                     ? wishlistPieces.length
                     : key === "all"
-                      ? pieces.length
-                      : pieces.filter((p) => p.categorie === key).length;
+                      ? seasonPieces.length
+                      : seasonPieces.filter((p) => p.categorie === key).length;
                   return (
                     <button key={key} onClick={() => setPieceFilter(key)}
                       className={`px-4 py-1.5 text-xs uppercase tracking-widest rounded-full border transition-colors ${
@@ -192,10 +263,18 @@ export default function Home() {
                   </span>
                 )}
               </div>
-              <button onClick={() => setShowModal(true)}
-                className="flex items-center gap-2 px-5 py-2 bg-navy text-cream text-xs uppercase tracking-widest rounded-sm hover:bg-ink transition-colors">
-                <span className="text-lg leading-none">+</span> Ajouter une pièce
-              </button>
+              <div className="flex items-center gap-2">
+                <button onClick={toggleSelectMode}
+                  className={`px-4 py-2 text-xs uppercase tracking-widest rounded-sm border transition-colors ${
+                    selectMode ? "bg-sand text-white border-sand" : "border-sand/40 text-ink/60 hover:border-navy hover:text-navy"
+                  }`}>
+                  {selectMode ? "✕ Annuler" : "Sélectionner"}
+                </button>
+                <button onClick={() => setShowModal(true)}
+                  className="flex items-center gap-2 px-5 py-2 bg-navy text-cream text-xs uppercase tracking-widest rounded-sm hover:bg-ink transition-colors">
+                  <span className="text-lg leading-none">+</span> Ajouter une pièce
+                </button>
+              </div>
             </div>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/30 text-sm">⌕</span>
@@ -216,12 +295,24 @@ export default function Home() {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {visiblePieces.map((piece) => (
-                  <PieceCard key={piece.id} piece={piece} onDelete={handleDeletePiece} onEdit={fetchPieces} onStatutChange={handleStatutChange} />
+                  <PieceCard key={piece.id} piece={piece} onDelete={handleDeletePiece} onEdit={fetchPieces} onStatutChange={handleStatutChange}
+                    selectMode={selectMode} selected={selectedIds.has(piece.id)} onToggleSelect={toggleSelectPiece} />
                 ))}
               </div>
             )}
           </main>
         </>
+      )}
+
+      {/* Barre d'action flottante — sélection multiple */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-4 px-5 py-3 bg-navy text-cream rounded-full shadow-lg">
+          <span className="text-xs">{selectedIds.size} pièce{selectedIds.size > 1 ? "s" : ""} sélectionnée{selectedIds.size > 1 ? "s" : ""}</span>
+          <button onClick={addSelectedToOtherSeason} disabled={bulkSaving}
+            className="px-4 py-1.5 text-xs uppercase tracking-widest bg-cream text-navy rounded-full hover:bg-white transition-colors disabled:opacity-50">
+            {bulkSaving ? "…" : otherSeason === "hiver" ? "❄️ Ajouter à Hiver" : "☀️ Ajouter à Été"}
+          </button>
+        </div>
       )}
 
       {/* ── ONGLET OUTFITS ── */}
@@ -248,7 +339,8 @@ export default function Home() {
           {/* Générateur (dépliable) */}
           {showGenerator && (
             <OutfitGenerator
-              allPieces={pieces}
+              allPieces={seasonPieces}
+              season={season}
               onSaved={() => { fetchOutfits(); }}
             />
           )}
@@ -296,6 +388,7 @@ export default function Home() {
         <AddPieceModal
           onAdd={() => { setShowModal(false); fetchPieces(); }}
           onClose={() => setShowModal(false)}
+          defaultSeason={season}
         />
       )}
 

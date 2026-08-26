@@ -13,6 +13,7 @@ export const pieces = sqliteTable("pieces", {
   url_achat:   text("url_achat"),
   image_url:   text("image_url"),
   style_type:  text("style_type"),
+  saison:      text("saison").default("ete"),
   statut:      text("statut").default("possédé"),
   notes:       text("notes"),
   date_ajout:  text("date_ajout").notNull(),

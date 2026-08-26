@@ -18,47 +18,63 @@ const MODEL_LABELS: Record<Model, string> = {
   isnet_quint8: "Rapide",
 };
 
+async function uploadBlob(blob: Blob, pieceId: string): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", blob, `${pieceId}.png`);
+  formData.append("pieceId", pieceId);
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  const { url } = await res.json();
+  return url;
+}
+
 export default function ImageUploader({ pieceId, currentImageUrl, onUploaded }: Props) {
-  const [status, setStatus]     = useState<"idle" | "removing" | "uploading" | "done" | "error">("idle");
-  const [preview, setPreview]   = useState<string | null>(currentImageUrl);
-  const [model, setModel]       = useState<Model>("isnet");
+  const [status, setStatus]       = useState<"idle" | "removing" | "uploading" | "done" | "error">("idle");
+  const [preview, setPreview]     = useState<string | null>(currentImageUrl);
+  const [model, setModel]         = useState<Model>("isnet");
   const [tolerance, setTolerance] = useState(3);
   const [dlProgress, setDlProgress] = useState<number | null>(null);
+  const [noDetour, setNoDetour]   = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
     setStatus("removing");
     setDlProgress(null);
+    setNoDetour(false);
+
+    let blobToUpload: Blob = file;
+
+    if (!noDetour) {
+      try {
+        let blob = await removeBackground(file, {
+          model,
+          output: { format: "image/png", quality: 1 },
+          proxyToWorker: false,
+          progress: (key, current, total) => {
+            if (key.includes("fetch") || key.includes("load")) {
+              setDlProgress(total > 0 ? Math.round((current / total) * 100) : null);
+            }
+          },
+        });
+        blob = await postProcessAlpha(blob, tolerance);
+        blobToUpload = blob;
+      } catch (err) {
+        console.error("[ImageUploader] Détourage échoué, upload sans détourage:", err);
+        // Fallback : uploader la photo originale sans détourage
+        blobToUpload = file;
+        setNoDetour(true);
+      }
+    }
+
+    setDlProgress(null);
+    setStatus("uploading");
     try {
-      // Détourage IA avec le modèle sélectionné
-      let blob = await removeBackground(file, {
-        model,
-        output: { format: "image/png", quality: 1 },
-        proxyToWorker: false,
-        progress: (key, current, total) => {
-          if (key.includes("fetch") || key.includes("load")) {
-            setDlProgress(total > 0 ? Math.round((current / total) * 100) : null);
-          }
-        },
-      });
-
-      // Post-traitement canvas : érosion + lissage + seuillage
-      blob = await postProcessAlpha(blob, tolerance);
-
-      setStatus("uploading");
-      const formData = new FormData();
-      formData.append("file", blob, `${pieceId}.png`);
-      formData.append("pieceId", pieceId);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const { url } = await res.json();
-
+      const url = await uploadBlob(blobToUpload, pieceId);
       setPreview(url);
       setStatus("done");
       onUploaded(url);
     } catch (err) {
-      console.error("[ImageUploader] Erreur détourage:", err);
+      console.error("[ImageUploader] Erreur upload:", err);
       setStatus("error");
-      setDlProgress(null);
     }
   };
 
@@ -109,6 +125,13 @@ export default function ImageUploader({ pieceId, currentImageUrl, onUploaded }: 
           <span>Agressif</span>
         </div>
       </div>
+
+      {/* Avertissement fallback */}
+      {noDetour && status === "done" && (
+        <p className="text-[10px] text-sand text-center">
+          Détourage indisponible — photo uploadée sans fond transparent
+        </p>
+      )}
 
       {/* Bouton upload */}
       <button type="button" onClick={() => inputRef.current?.click()}

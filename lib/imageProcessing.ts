@@ -3,8 +3,8 @@
  * Élimine les artefacts blancs résiduels sur les bords.
  *
  * tolerance 0  → aucune modification
- * tolerance 5  → érosion modérée + lissage
- * tolerance 10 → érosion agressive
+ * tolerance 5  → débruitage + érosion modérée + lissage
+ * tolerance 10 → débruitage + érosion agressive
  */
 export async function postProcessAlpha(blob: Blob, tolerance: number): Promise<Blob> {
   if (tolerance === 0) return blob;
@@ -27,6 +27,37 @@ export async function postProcessAlpha(blob: Blob, tolerance: number): Promise<B
       const h = canvas.height;
       const imageData = ctx.getImageData(0, 0, w, h);
       const data = imageData.data; // RGBA linéaire
+
+      // ── Étape 0 : Débruitage médian du canal alpha ──
+      // Élimine le bruit "sel et poivre" (pixels isolés en damier) que peut produire
+      // le modèle IA sur les zones ambiguës (ex: motif à carreaux qui se fond dans le fond).
+      // Fait AVANT l'érosion, car un filtre d'érosion (minimum) amplifie ce bruit au lieu
+      // de le corriger : un seul pixel bruité suffit à faire chuter tout son voisinage.
+      {
+        const despeckleRadius = tolerance > 6 ? 2 : 1;
+        const kernelSize = despeckleRadius * 2 + 1;
+        const samples = new Uint8Array(kernelSize * kernelSize);
+        const alphaSrc = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) alphaSrc[i] = data[i * 4 + 3];
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            let n = 0;
+            for (let dy = -despeckleRadius; dy <= despeckleRadius; dy++) {
+              const ny = y + dy;
+              if (ny < 0 || ny >= h) continue;
+              for (let dx = -despeckleRadius; dx <= despeckleRadius; dx++) {
+                const nx = x + dx;
+                if (nx < 0 || nx >= w) continue;
+                samples[n++] = alphaSrc[ny * w + nx];
+              }
+            }
+            const used = samples.subarray(0, n);
+            used.sort();
+            data[(y * w + x) * 4 + 3] = used[n >> 1];
+          }
+        }
+      }
 
       // ── Étape 1 : Érosion du canal alpha ──
       // Réduit le masque de (radius) pixels vers l'intérieur.

@@ -53,6 +53,15 @@ async function migrate() {
     );
   `);
 
+  try {
+    await client.execute(`ALTER TABLE pieces ADD COLUMN saison TEXT DEFAULT 'toutes';`);
+    console.log("✓ Colonne saison ajoutée.");
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("duplicate column")) throw err;
+    console.log("✓ Colonne saison déjà présente.");
+  }
+
   console.log("✓ Toutes les tables sont prêtes.");
   client.close();
 }

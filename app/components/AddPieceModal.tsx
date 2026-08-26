@@ -6,17 +6,17 @@ import { STYLE_TYPES, getStyles } from "@/lib/styleTypes";
 type Props = {
   onAdd: () => void;
   onClose: () => void;
+  defaultSeason?: "ete" | "hiver";
 };
 
 const CATEGORIES = ["hauts", "bas", "chaussures", "accessoires"];
-const SOUS_TYPES: Record<string, string[]> = {
-  hauts:       ["tee", "hoodie", "shirt", "veste"],
-  bas:         ["short", "long"],
-  chaussures:  ["sneaker", "sandal", "boot"],
-  accessoires: ["cap", "sunglasses", "bag", "belt"],
-};
+const SOUS_TYPES: Record<string, string[]> = Object.fromEntries(
+  Object.entries(STYLE_TYPES).map(([cat, sousTypes]) => [cat, Object.keys(sousTypes)])
+);
+const SAISONS = ["toutes", "ete", "hiver"] as const;
+const SAISON_LABELS: Record<string, string> = { toutes: "Toutes", ete: "☀️ Été", hiver: "❄️ Hiver" };
 
-export default function AddPieceModal({ onAdd, onClose }: Props) {
+export default function AddPieceModal({ onAdd, onClose, defaultSeason = "ete" }: Props) {
   const initialCat       = "hauts";
   const initialSousType  = "tee";
   const initialStyles    = getStyles(initialCat, initialSousType);
@@ -28,6 +28,7 @@ export default function AddPieceModal({ onAdd, onClose }: Props) {
     categorie:   initialCat,
     sous_type:   initialSousType,
     style_type:  initialStyleType,
+    saison:      defaultSeason,
     statut:      "possédé",
     couleur_hex: "#FFFFFF",
     couleur_nom: "",
@@ -220,6 +221,21 @@ export default function AddPieceModal({ onAdd, onClose }: Props) {
             <textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={2}
               placeholder="Fit oversized, disponible en plusieurs couleurs…"
               className="w-full border border-sand/40 rounded-sm px-3 py-2 text-sm bg-white focus:outline-none focus:border-navy resize-none" />
+          </div>
+
+          {/* Saison */}
+          <div>
+            <label className="block text-xs uppercase tracking-widest text-sand mb-1">Saison</label>
+            <div className="flex gap-2">
+              {SAISONS.map((s) => (
+                <button key={s} type="button" onClick={() => set("saison", s)}
+                  className={`px-4 py-1.5 text-xs rounded-full border transition-colors ${
+                    form.saison === s ? "bg-navy text-cream border-navy" : "border-sand/40 text-ink/60 hover:border-navy"
+                  }`}>
+                  {SAISON_LABELS[s]}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Statut */}

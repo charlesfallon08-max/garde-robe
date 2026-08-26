@@ -9,9 +9,12 @@ type Props = {
   onDelete: (id: string) => void;
   onEdit: () => void;
   onStatutChange?: (id: string, statut: string) => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 };
 
-export default function PieceCard({ piece, onDelete, onEdit, onStatutChange }: Props) {
+export default function PieceCard({ piece, onDelete, onEdit, onStatutChange, selectMode, selected, onToggleSelect }: Props) {
   const [hover, setHover]                 = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showEdit, setShowEdit]           = useState(false);
@@ -37,7 +40,9 @@ export default function PieceCard({ piece, onDelete, onEdit, onStatutChange }: P
   return (
     <>
       <div
-        className="relative bg-white rounded-sm overflow-hidden shadow-sm border border-sand/20 transition-all duration-200 hover:shadow-md flex flex-col"
+        className={`relative bg-white rounded-sm overflow-hidden shadow-sm border transition-all duration-200 hover:shadow-md flex flex-col ${
+          selected ? "border-navy ring-2 ring-navy/40" : "border-sand/20"
+        }`}
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => { setHover(false); setConfirmDelete(false); }}
       >
@@ -45,8 +50,15 @@ export default function PieceCard({ piece, onDelete, onEdit, onStatutChange }: P
         <div
           className="relative w-full aspect-[3/4] flex items-center justify-center overflow-hidden cursor-pointer"
           style={{ backgroundColor: piece.image_url ? "var(--cream)" : piece.couleur_hex + "18" }}
-          onClick={() => setShowEdit(true)}
+          onClick={() => selectMode ? onToggleSelect?.(piece.id) : setShowEdit(true)}
         >
+          {selectMode && (
+            <div className={`absolute top-2 right-2 z-10 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs transition-colors ${
+              selected ? "bg-navy border-navy text-cream" : "bg-white/80 border-sand/50 text-transparent"
+            }`}>
+              ✓
+            </div>
+          )}
           {piece.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -70,18 +82,28 @@ export default function PieceCard({ piece, onDelete, onEdit, onStatutChange }: P
             {piece.sous_type}
           </span>
 
+          {/* Badge saison (si pièce dédiée à une saison) */}
+          {(piece as typeof piece & { saison?: string }).saison &&
+            (piece as typeof piece & { saison?: string }).saison !== "toutes" && (
+            <span className="absolute top-8 left-2 text-[11px] px-1 py-0.5 rounded-full bg-white/80">
+              {(piece as typeof piece & { saison?: string }).saison === "hiver" ? "❄️" : "☀️"}
+            </span>
+          )}
+
           {/* Badge wishlist */}
-          <button
-            onClick={toggleStatut}
-            title={statut === "wishlist" ? "Marquer comme possédé" : "Ajouter à la wishlist"}
-            className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all text-sm ${
-              statut === "wishlist"
-                ? "bg-terracotta text-white shadow-sm"
-                : "bg-white/70 text-ink/20 hover:bg-white hover:text-ink/40"
-            }`}
-          >
-            ★
-          </button>
+          {!selectMode && (
+            <button
+              onClick={toggleStatut}
+              title={statut === "wishlist" ? "Marquer comme possédé" : "Ajouter à la wishlist"}
+              className={`absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center transition-all text-sm ${
+                statut === "wishlist"
+                  ? "bg-terracotta text-white shadow-sm"
+                  : "bg-white/70 text-ink/20 hover:bg-white hover:text-ink/40"
+              }`}
+            >
+              ★
+            </button>
+          )}
         </div>
 
         {/* ── Infos texte (compactes en bas) ── */}
@@ -104,7 +126,7 @@ export default function PieceCard({ piece, onDelete, onEdit, onStatutChange }: P
         </div>
 
         {/* ── Actions au hover ── */}
-        {hover && (
+        {hover && !selectMode && (
           <div className="absolute bottom-0 left-0 right-0 flex border-t border-sand/20 bg-white/95 backdrop-blur-sm">
             {piece.url_achat && (
               <a

@@ -42,6 +42,7 @@ export async function POST() {
     prix_cad:    item.price_cad,
     url_achat:   item.url,
     image_url:   null,
+    saison:      "ete",
     notes:       item.note,
     date_ajout:  now,
   }));

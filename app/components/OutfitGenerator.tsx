@@ -13,23 +13,24 @@ type Proposition = {
 
 type Props = {
   allPieces: Piece[];
+  season?: "ete" | "hiver";
   onSaved: () => void;
 };
 
 const OCCASIONS = ["jour", "soir", "beach", "terrasse", "école"];
-const METEOS    = ["chaud", "frais", "pluvieux"];
+const METEOS    = ["chaud", "frais", "froid", "pluvieux"];
 
 const OCCASION_ICONS: Record<string, string> = {
   jour: "☀️", soir: "🌙", beach: "🏖", terrasse: "☕", "école": "🎒",
 };
 const METEO_ICONS: Record<string, string> = {
-  chaud: "🌡", frais: "🍃", pluvieux: "🌧",
+  chaud: "🌡", frais: "🍃", froid: "❄️", pluvieux: "🌧",
 };
 
-export default function OutfitGenerator({ allPieces, onSaved }: Props) {
+export default function OutfitGenerator({ allPieces, season, onSaved }: Props) {
   const [ancreId, setAncreId]       = useState<string | null>(null);
   const [occasion, setOccasion]     = useState("jour");
-  const [meteo, setMeteo]           = useState("chaud");
+  const [meteo, setMeteo]           = useState(season === "hiver" ? "froid" : "chaud");
   const [meteoReel, setMeteoReel]   = useState<WeatherData | null>(null);
   const [meteoLoading, setMeteoLoading] = useState(false);
   const [loading, setLoading]       = useState(false);
@@ -63,7 +64,7 @@ export default function OutfitGenerator({ allPieces, onSaved }: Props) {
     const res = await fetch("/api/outfits/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ancre_id: ancreId, occasion, meteo, meteo_reel: meteoReel }),
+      body: JSON.stringify({ ancre_id: ancreId, occasion, meteo, meteo_reel: meteoReel, saison: season }),
     });
     const data = await res.json();
     setPropositions(data.propositions ?? []);
